@@ -1,4 +1,7 @@
-# Install required packages
+# Update/upgrade packages
+apt update && apt upgrade -y
+
+# Install nmap
 apt install nmap -y
 
 # Set static IP address on client nat network
