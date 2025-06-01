@@ -2,7 +2,7 @@
 apt update && apt upgrade -y
 
 # Install Apache
-apt install apache2
+apt install apache2 -y
 
 # Set static IP address on client nat network
 nmcli connection modify "Wired connection 1" ipv4.method manual
