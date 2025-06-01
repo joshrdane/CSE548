@@ -1,4 +1,43 @@
-# Set variables
+#!/bin/sh
+
+#################################################################################
+#								            #
+# rc.firewall - Initial SIMPLE IP Firewall script for Linux and $IPTABLES        #
+#									    #
+# 02/17/2020  Created by Dijiang Huang ASU SNAC Lab      			    #
+# updated 05/12/2021							    #
+#################################################################################
+#                                                                               #
+#                                                                               #
+# Configuration options, these will speed you up getting this script to         #
+# work with your own setup.                                                     #
+#                                                                               #
+# your LAN's IP range and localhost IP. /24 means to only use the first 24      #
+# bits of the 32 bit IP address. the same as netmask 255.255.255.0              #
+#                                                                               #
+#                                                                               # 
+#################################################################################
+#
+# 1. Configuration options.
+# NOTE that you need to change the configuration based on your own network setup.
+# The defined alias and variables allow you to manage and update the entire 
+# configurations easily, and more readable :-)
+#
+# Lab Network Topology
+#
+# ---------                       ----------------               
+# |Client |__Client_NET__|Gateway/Server |
+# ---------                      ----------------              
+#                                      |
+#                                      |Internet           
+#                                      |                      ________ 
+#                                  ----------             /        \
+#                                  |Host PC |________|Internet|
+#                                 ----------             \_______/ 
+#                        
+#
+
+# Joshua Dane: Set variables
 WEB_IP=127.0.0.1
 WEB_PORT=80
 CLIENT_IP=10.0.2.20
@@ -8,21 +47,139 @@ INET_NET_IFACE=enp0s8
 INET_NET_IFACE_IP=10.0.1.10
 DNS=8.8.8.8
 
-# Clear rules
-iptables -F
-iptables -X
-iptables -F -t nat
+####
+# 1.4 IPTables Configuration.
+#
 
-# Set iptables to allowlist/whitelist
-iptables -P INPUT DROP
-iptables -P OUTPUT DROP
-iptables -P FORWARD DROP
+IPTABLES="/sbin/iptables"
+
+
+#######################################################
+#                                                     #
+# 2. Module loading.                                  #
+#                                                     #
+#######################################################
+#
+# Needed to initially load modules
+#
+/sbin/depmod -a	 
+
+#
+# flush $IPTABLES
+#
+$IPTABLES -F 
+$IPTABLES -X 
+$IPTABLES -F -t nat
+
+#####
+# 2.1 Required modules
+#
+
+/sbin/modprobe ip_tables
+/sbin/modprobe ip_conntrack
+/sbin/modprobe iptable_filter
+/sbin/modprobe iptable_mangle
+/sbin/modprobe iptable_nat
+/sbin/modprobe ipt_LOG
+/sbin/modprobe ipt_limit
+/sbin/modprobe ipt_state
+
+#####
+# 2.2 Non-frequently used modules
+#
+
+#/sbin/modprobe ipt_owner
+#/sbin/modprobe ipt_REJECT
+#/sbin/modprobe ipt_MASQUERADE
+#/sbin/modprobe ip_conntrack_ftp
+#/sbin/modprobe ip_conntrack_irc
+#/sbin/modprobe ip_nat_ftp
+
+###########################################################################
+#
+# 3. /proc set up.
+#
+
+#
+# 3.1 Required proc configuration
+#
+
+#
+# Enable ip_forward, this is critical since it is turned off as defaul in 
+# Linux.
+#
+echo "1" > /proc/sys/net/ipv4/ip_forward
+
+#
+# 3.2 Non-Required proc configuration
+#
+
+#
+# Dynamic IP users:
+#
+#echo "1" > /proc/sys/net/ipv4/ip_dynaddr
+
+###########################################################################
+#
+# 4. rules set up.
+#
+
+# The kernel starts with three lists of rules; these lists are called firewall
+# chains or just chains. The three chains are called INPUT, OUTPUT and FORWARD.
+#
+# The chains are arranged like so:
+#
+#                     _____
+#                    /     \
+#  -->[Routing ]--->|FORWARD|------->
+#     [Decision]     \_____/        ^
+#          |                        |
+#          v                       ____
+#         ___                     /    \
+#        /   \                   |OUTPUT|
+#       |INPUT|                   \____/
+#        \___/                      ^
+#          |                        |
+#           ----> Local Process ----
+#
+# 1. When a packet comes in (say, through the Ethernet card) the kernel first 
+#    looks at the destination of the packet: this is called `routing'.
+# 2. If it's destined for this box, the packet passes downwards in the diagram, 
+#    to the INPUT chain. If it passes this, any processes waiting for that 
+#    packet will receive it. 
+# 3. Otherwise, if the kernel does not have forwarding enabled, or it doesn't 
+#    know how to forward the packet, the packet is dropped. If forwarding is 
+#    enabled, and the packet is destined for another network interface (if you 
+#    have another one), then the packet goes rightwards on our diagram to the 
+#    FORWARD chain. If it is ACCEPTed, it will be sent out. 
+# 4. Finally, a program running on the box can send network packets. These 
+#    packets pass through the OUTPUT chain immediately: if it says ACCEPT, then 
+#    the packet continues out to whatever interface it is destined for. 
+#
+
+
+#####
+# 4.1 Filter table
+#
+
+#
+# 4.1.1 Set policies
+#
+
+#
+# Set default policies for the INPUT, FORWARD and OUTPUT chains
+#
+
+# Whitelist (Whitelist is preferred)
+$IPTABLES -P INPUT DROP
+$IPTABLES -P OUTPUT DROP
+$IPTABLES -P FORWARD DROP
 
 # Set up web server access on from the Client VM to the Gateway/Server VM
-iptables -A INPUT -p TCP -i $CLIENT_NET_IFACE -s $CLIENT_IP -d $CLIENT_NET_IFACE_IP --dport $WEB_PORT -j ACCEPT
-iptables -A OUTPUT -p TCP -s $WEB_IP --sport $WEB_PORT -o $CLIENT_NET_IFACE -d $CLIENT_IP -j ACCEPT
+$IPTABLES -A INPUT -p TCP -i $CLIENT_NET_IFACE -s $CLIENT_IP -d $CLIENT_NET_IFACE_IP --dport $WEB_PORT -j ACCEPT
+$IPTABLES -A OUTPUT -p TCP -s $WEB_IP --sport $WEB_PORT -o $CLIENT_NET_IFACE -d $CLIENT_IP -j ACCEPT
 
 # Set up ping to DNS (8.8.8.8) with POSTROUTING
-iptables -A FORWARD -p ICMP -i $CLIENT_NET_IFACE -s $CLIENT_IP -o $INET_NET_IFACE -d $DNS -j ACCEPT
-iptables -A FORWARD -p ICMP -i $INET_NET_IFACE -s $DNS -o $CLIENT_NET_IFACE -d $CLIENT_IP -j ACCEPT
-iptables -t nat -A POSTROUTING -p ICMP -s $CLIENT_IP -o $INET_NET_IFACE -d $DNS -j MASQUERADE
+$IPTABLES -A FORWARD -p ICMP -i $CLIENT_NET_IFACE -s $CLIENT_IP -o $INET_NET_IFACE -d $DNS -j ACCEPT
+$IPTABLES -A FORWARD -p ICMP -i $INET_NET_IFACE -s $DNS -o $CLIENT_NET_IFACE -d $CLIENT_IP -j ACCEPT
+$IPTABLES -t nat -A POSTROUTING -p ICMP -s $CLIENT_IP -o $INET_NET_IFACE -d $DNS -j MASQUERADE
