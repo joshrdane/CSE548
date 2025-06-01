@@ -13,4 +13,4 @@ nmcli connection modify "Wired connection 1" ipv4.gateway 10.0.2.10
 route del default
 
 # Set the default route to the Gateway/Server VM
-route add default gw 10.0.2.20 dev enp0s3
+route add default gw 10.0.2.10 dev enp0s3
