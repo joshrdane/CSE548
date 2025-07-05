@@ -1,0 +1,38 @@
+--- Scenario: B Report ---
+
+Training set created with 124926 records.
+Testing set created with 17171 records.
+Exported scenario-specific train.csv and test.csv files.
+
+--- Training Progress ---
+Epoch 1/10
+12493/12493 - 13s - loss: 0.0542 - accuracy: 0.9841
+Epoch 2/10
+12493/12493 - 13s - loss: 0.0215 - accuracy: 0.9941
+Epoch 3/10
+12493/12493 - 13s - loss: 0.0162 - accuracy: 0.9952
+Epoch 4/10
+12493/12493 - 13s - loss: 0.0143 - accuracy: 0.9959
+Epoch 5/10
+12493/12493 - 13s - loss: 0.0134 - accuracy: 0.9963
+Epoch 6/10
+12493/12493 - 13s - loss: 0.0127 - accuracy: 0.9963
+Epoch 7/10
+12493/12493 - 13s - loss: 0.0120 - accuracy: 0.9967
+Epoch 8/10
+12493/12493 - 13s - loss: 0.0114 - accuracy: 0.9967
+Epoch 9/10
+12493/12493 - 13s - loss: 0.0114 - accuracy: 0.9969
+Epoch 10/10
+12493/12493 - 13s - loss: 0.0106 - accuracy: 0.9969
+
+
+--- Training Evaluation ---
+Loss: 0.0097, Accuracy: 0.9971
+
+--- Testing Evaluation ---
+Loss: 1.1911, Accuracy: 0.8914
+
+--- Confusion Matrix (TN, FP, FN, TP) ---
+[[9039  672]
+ [1428 6032]]
